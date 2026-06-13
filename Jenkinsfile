@@ -74,9 +74,14 @@ pipeline {
         }
         stage('Deploy to Stage') {
             steps {
-                sshagent(['ansible-ssh-key']) {
-                    sh 'ssh -t -t ec2-user@10.0.3.59 -o StrictHostKeyChecking=no "ansible-playbook -i /etc/ansible/stage_hosts /etc/ansible/deployment.yml"'
-                }
+                sh '''
+                    aws ssm send-command \
+                --instance-ids i-0e81fb11638602693 \
+                --document-name "AWS-RunShellScript" \
+                --parameters '{"commands":["ansible-playbook -i /etc/ansible/stage_hosts /etc/ansible/deployment.yml"]}' \
+                --region eu-west-1 \
+                --output text
+                '''
             }
         }
         stage('Check Stage Website') {
@@ -100,10 +105,15 @@ pipeline {
             }
         }
         stage('Deploy to Prod') {
-            steps {
-                sshagent(['ansible-ssh-key']) {
-                    sh 'ssh -t -t ec2-user@10.0.3.59 -o StrictHostKeyChecking=no "ansible-playbook -i /etc/ansible/prod_hosts /etc/ansible/deployment.yml"'
-                }
+                    steps {
+            sh '''
+                aws ssm send-command \
+                --instance-ids i-0e81fb11638602693 \
+                --document-name "AWS-RunShellScript" \
+                --parameters '{"commands":["ansible-playbook -i /etc/ansible/prod_hosts /etc/ansible/deployment.yml"]}' \
+                --region eu-west-1 \
+                --output text
+                '''
             }
         }
         stage('Check Prod Website') {
